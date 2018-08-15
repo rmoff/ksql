@@ -18,7 +18,8 @@ package io.confluent.ksql.serde.connect;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,9 +58,9 @@ public class ConnectDataTranslator implements DataTranslator {
     );
   }
 
-  private RuntimeException createTypeMismatchException(final String pathStr,
-                                                       final Schema schema,
-                                                       final Schema connectSchema) {
+  private RuntimeException throwTypeMismatchException(final String pathStr,
+                                                      final Schema schema,
+                                                      final Schema connectSchema) {
     throw new DataException(
         String.format(
             "Cannot deserialize type %s as type %s for field %s",
@@ -72,11 +73,12 @@ public class ConnectDataTranslator implements DataTranslator {
                             final Schema schema,
                             final Schema connectSchema,
                             final Schema.Type... validTypes) {
-    Arrays.stream(validTypes)
-        .filter(connectSchema.type()::equals)
-        .findFirst()
-        .orElseThrow(
-            () -> createTypeMismatchException(pathStr, schema, connectSchema));
+    for (int i = 0; i < validTypes.length; i++) {
+      if (connectSchema.type().equals(validTypes[i])) {
+        return;
+      }
+    }
+    throwTypeMismatchException(pathStr, schema, connectSchema);
   }
 
   private void validateSchema(final String pathStr,
@@ -226,12 +228,11 @@ public class ConnectDataTranslator implements DataTranslator {
   }
 
   private Map<String, String> getCaseInsensitiveFieldMap(final Schema schema) {
-    return schema.fields()
-        .stream()
-        .collect(
-            Collectors.toMap(
-                f -> f.name().toUpperCase(),
-                Field::name));
+    final Map<String, String> fieldNames = new HashMap<>();
+    for (final Field field : schema.fields()) {
+      fieldNames.put(field.name().toUpperCase(), field.name());
+    }
+    return fieldNames;
   }
 
   public Struct toConnectRow(final GenericRow row) {
