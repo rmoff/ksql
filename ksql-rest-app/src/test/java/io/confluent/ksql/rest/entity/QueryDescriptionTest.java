@@ -29,6 +29,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Supplier;
+
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -74,7 +76,7 @@ public class QueryDescriptionTest {
     public SchemaKStream buildStream(
         StreamsBuilder builder, KsqlConfig ksqlConfig, KafkaTopicClient kafkaTopicClient,
         FunctionRegistry functionRegistry, Map<String, Object> props,
-        SchemaRegistryClient schemaRegistryClient) {
+        Supplier<SchemaRegistryClient> schemaRegistryClient) {
       return null;
     }
   }

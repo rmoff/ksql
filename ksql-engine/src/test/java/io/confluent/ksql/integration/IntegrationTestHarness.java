@@ -3,6 +3,7 @@ package io.confluent.ksql.integration;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.registry.MockSchemaRegistryClientFactory;
 import io.confluent.ksql.serde.DataSource;
 import io.confluent.ksql.serde.avro.KsqlAvroTopicSerDe;
 import io.confluent.ksql.serde.delimited.KsqlDelimitedDeserializer;
@@ -26,6 +27,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -58,6 +61,7 @@ public class IntegrationTestHarness {
   public KsqlConfig ksqlConfig;
   private KafkaTopicClientImpl topicClient;
 
+  public Supplier<SchemaRegistryClient> schemaRegistryClientFactory;
   public SchemaRegistryClient schemaRegistryClient;
 
   private final AtomicInteger consumedCount;
@@ -67,6 +71,7 @@ public class IntegrationTestHarness {
 
   public IntegrationTestHarness() {
     this.schemaRegistryClient = new MockSchemaRegistryClient();
+    this.schemaRegistryClientFactory = () -> this.schemaRegistryClient;
     THIS = this;
     consumedCount = new AtomicInteger(0);
     producedCount = new AtomicInteger(0);
