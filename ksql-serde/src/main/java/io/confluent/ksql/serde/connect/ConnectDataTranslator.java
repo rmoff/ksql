@@ -19,7 +19,9 @@ package io.confluent.ksql.serde.connect;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,16 +48,17 @@ public class ConnectDataTranslator implements DataTranslator {
     if (!schema.type().equals(Schema.Type.STRUCT)) {
       throw new KsqlException("Schema for a KSQL row should be a struct");
     }
+
     final Struct rowStruct = (Struct) toKsqlValue(schema, connectSchema, connectData, "");
     if (rowStruct == null) {
       return null;
     }
-    return new GenericRow(
-        schema.fields()
-            .stream()
-            .map(f -> rowStruct.get(f.name()))
-            .collect(Collectors.toList())
-    );
+
+    final List<Object> fields = new ArrayList<>(schema.fields().size());
+    for (final Field field : schema.fields()) {
+      fields.add(rowStruct.get(field.name()));
+    }
+    return new GenericRow(fields);
   }
 
   private RuntimeException throwTypeMismatchException(final String pathStr,
@@ -72,7 +75,7 @@ public class ConnectDataTranslator implements DataTranslator {
   private void validateType(final String pathStr,
                             final Schema schema,
                             final Schema connectSchema,
-                            final Schema.Type... validTypes) {
+                            final Schema.Type[] validTypes) {
     for (int i = 0; i < validTypes.length; i++) {
       if (connectSchema.type().equals(validTypes[i])) {
         return;
@@ -80,6 +83,41 @@ public class ConnectDataTranslator implements DataTranslator {
     }
     throwTypeMismatchException(pathStr, schema, connectSchema);
   }
+
+  private void validateType(final String pathStr,
+                            final Schema schema,
+                            final Schema connectSchema) {
+    if (!connectSchema.type().equals(schema.type())) {
+      throwTypeMismatchException(pathStr, schema, connectSchema);
+    }
+  }
+
+  private static final Schema.Type[] STRING_ACCEPTABLE_TYPES = {
+      Schema.Type.INT8,
+      Schema.Type.INT16,
+      Schema.Type.INT32,
+      Schema.Type.INT64,
+      Schema.Type.BOOLEAN,
+      Schema.Type.STRING
+  };
+
+  private static final Schema.Type[] INT64_ACCEPTABLE_TYPES = {
+      Schema.Type.INT64,
+      Schema.Type.INT32,
+      Schema.Type.INT16,
+      Schema.Type.INT8
+  };
+
+  private static final Schema.Type[] INT32_ACCEPTABLE_TYPES = {
+      Schema.Type.INT32,
+      Schema.Type.INT16,
+      Schema.Type.INT8
+  };
+
+  private static final Schema.Type[] FLOAT64_ACCEPTABLE_TYPES = {
+      Schema.Type.FLOAT32,
+      Schema.Type.FLOAT64
+  };
 
   private void validateSchema(final String pathStr,
                               final Schema schema,
@@ -89,25 +127,19 @@ public class ConnectDataTranslator implements DataTranslator {
       case ARRAY:
       case MAP:
       case STRUCT:
-        validateType(pathStr, schema, connectSchema, schema.type());
+        validateType(pathStr, schema, connectSchema);
         break;
       case STRING:
-        validateType(pathStr, schema, connectSchema,
-            Schema.Type.INT8, Schema.Type.INT16, Schema.Type.INT32, Schema.Type.INT64,
-            Schema.Type.BOOLEAN, Schema.Type.STRING);
+        validateType(pathStr, schema, connectSchema, STRING_ACCEPTABLE_TYPES);
         break;
       case INT64:
-        validateType(
-            pathStr, schema, connectSchema,
-            Schema.Type.INT64, Schema.Type.INT32, Schema.Type.INT16, Schema.Type.INT8);
+        validateType(pathStr, schema, connectSchema, INT64_ACCEPTABLE_TYPES);
         break;
       case INT32:
-        validateType(
-            pathStr, schema, connectSchema,
-            Schema.Type.INT32, Schema.Type.INT16, Schema.Type.INT8);
+        validateType(pathStr, schema, connectSchema, INT32_ACCEPTABLE_TYPES);
         break;
       case FLOAT64:
-        validateType(pathStr, schema, connectSchema, Schema.Type.FLOAT32, Schema.Type.FLOAT64);
+        validateType(pathStr, schema, connectSchema, FLOAT64_ACCEPTABLE_TYPES);
         break;
       default:
         throw new RuntimeException(
@@ -206,7 +238,7 @@ public class ConnectDataTranslator implements DataTranslator {
     final Struct ksqlStruct = new Struct(schema);
     final Map<String, String> caseInsensitiveFieldNameMap
         = getCaseInsensitiveFieldMap(connectStruct.schema());
-    for (Field field : schema.fields()) {
+    for (final Field field : schema.fields()) {
       final String fieldNameUppercase = field.name().toUpperCase();
       // TODO: should we throw an exception if this is not true? this means the schema changed
       //       or the user declared the source with a schema incompatible with the registry schema
