@@ -16,7 +16,6 @@
 
 package io.confluent.ksql.serde.json;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.serde.util.SerdeUtils;
 import io.confluent.ksql.util.KsqlException;
@@ -26,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
@@ -121,19 +119,24 @@ public class KsqlJsonDeserializer implements Deserializer<GenericRow> {
   }
 
   private List<?> enforceFieldTypeForArray(final Schema fieldSchema, final List<?> arrayList) {
-    return arrayList.stream()
-        .map(item -> enforceFieldType(fieldSchema.valueSchema(), item))
-        .collect(Collectors.toList());
+    final List<Object> array = new ArrayList<>(arrayList.size());
+    for (final Object item : arrayList) {
+      array.add(enforceFieldType(fieldSchema.valueSchema(), item));
+    }
+    return array;
   }
 
   private Map<String, Object> enforceFieldTypeForMap(
       final Schema fieldSchema,
       final Map<String, ?> columnMap) {
-    return columnMap.entrySet().stream()
-        .collect(Collectors.toMap(
-            e -> enforceFieldType(Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
-            e -> enforceFieldType(fieldSchema.valueSchema(), e.getValue())
-        ));
+    final Map<String, Object> ksqlMap = new HashMap<>();
+    for (final Map.Entry<String, ?> e : columnMap.entrySet()) {
+      ksqlMap.put(
+          enforceFieldType(Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
+          enforceFieldType(fieldSchema.valueSchema(), e.getValue())
+      );
+    }
+    return ksqlMap;
   }
 
   private Struct enforceFieldTypeForStruct(
