@@ -20,11 +20,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Date;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
@@ -56,14 +55,14 @@ public class ConnectDataTranslator implements DataTranslator {
 
     final List<Object> fields = new ArrayList<>(schema.fields().size());
     for (final Field field : schema.fields()) {
-      fields.add(rowStruct.get(field.name()));
+      fields.add(rowStruct.get(field));
     }
     return new GenericRow(fields);
   }
 
-  private RuntimeException throwTypeMismatchException(final String pathStr,
-                                                      final Schema schema,
-                                                      final Schema connectSchema) {
+  private void throwTypeMismatchException(final String pathStr,
+                                          final Schema schema,
+                                          final Schema connectSchema) {
     throw new DataException(
         String.format(
             "Cannot deserialize type %s as type %s for field %s",
@@ -205,29 +204,32 @@ public class ConnectDataTranslator implements DataTranslator {
 
   private List toKsqlArray(final Schema valueSchema, final Schema connectValueSchema,
                            final List<Object> connectArray, final String pathStr) {
-    return connectArray.stream()
-        .map(o -> toKsqlValue(
-            valueSchema, connectValueSchema, o, pathStr + PATH_SEPARATOR + "ARRAY"))
-        .collect(Collectors.toList());
+    final List<Object> ksqlArray = new ArrayList<>(connectArray.size());
+    connectArray.forEach(
+        item -> ksqlArray.add(
+            toKsqlValue(valueSchema, connectValueSchema, item, pathStr + PATH_SEPARATOR + "ARRAY")));
+    return Collections.unmodifiableList(ksqlArray);
   }
 
   private Map toKsqlMap(final Schema keySchema, final Schema connectKeySchema,
                         final Schema valueSchema, final Schema connectValueSchema,
-                        final Map<String, Object> connectMap, final String pathStr) {
-    return connectMap.entrySet().stream()
-        .collect(
-            Collectors.toMap(
-                e -> toKsqlValue(
-                    keySchema,
-                    connectKeySchema,
-                    e.getKey(),
-                    pathStr + PATH_SEPARATOR + "MAP_KEY"),
-                e -> toKsqlValue(
-                    valueSchema,
-                    connectValueSchema,
-                    e.getValue(),
-                    pathStr + PATH_SEPARATOR + "MAP_VAL")
-            ));
+                        final Map<Object, Object> connectMap, final String pathStr) {
+    final Map<Object, Object> ksqlMap = new HashMap<>();
+    connectMap.forEach(
+        (key, value) -> ksqlMap.put(
+            toKsqlValue(
+                keySchema,
+                connectKeySchema,
+                key,
+                pathStr + PATH_SEPARATOR + "MAP_KEY"),
+            toKsqlValue(
+                valueSchema,
+                connectValueSchema,
+                value,
+                pathStr + PATH_SEPARATOR + "MAP_VAL")
+        )
+    );
+    return Collections.unmodifiableMap(ksqlMap);
   }
 
   private Struct toKsqlStruct(final Schema schema,
@@ -236,19 +238,17 @@ public class ConnectDataTranslator implements DataTranslator {
                               final String pathStr) {
     // todo: check name here? e.g. what if the struct gets changed to a union?
     final Struct ksqlStruct = new Struct(schema);
-    final Map<String, String> caseInsensitiveFieldNameMap
-        = getCaseInsensitiveFieldMap(connectStruct.schema());
+    final Map<String, Field> caseInsensitiveFieldNameMap = getCaseInsensitiveFieldMap(connectSchema);
     for (final Field field : schema.fields()) {
       final String fieldNameUppercase = field.name().toUpperCase();
       // TODO: should we throw an exception if this is not true? this means the schema changed
       //       or the user declared the source with a schema incompatible with the registry schema
       if (caseInsensitiveFieldNameMap.containsKey(fieldNameUppercase)) {
-        final Object fieldValue = connectStruct.get(
-            caseInsensitiveFieldNameMap.get(fieldNameUppercase));
-        final Schema fieldSchema = connectSchema.field(
-            caseInsensitiveFieldNameMap.get(fieldNameUppercase)).schema();
+        final Field connectField = caseInsensitiveFieldNameMap.get(fieldNameUppercase);
+        final Object fieldValue = connectStruct.get(connectField);
+        final Schema fieldSchema = connectField.schema();
         ksqlStruct.put(
-            field.name(),
+            field,
             toKsqlValue(
                 field.schema(),
                 fieldSchema,
@@ -259,19 +259,19 @@ public class ConnectDataTranslator implements DataTranslator {
     return ksqlStruct;
   }
 
-  private Map<String, String> getCaseInsensitiveFieldMap(final Schema schema) {
-    final Map<String, String> fieldNames = new HashMap<>();
-    for (final Field field : schema.fields()) {
-      fieldNames.put(field.name().toUpperCase(), field.name());
-    }
-    return fieldNames;
+  private Map<String, Field> getCaseInsensitiveFieldMap(final Schema schema) {
+    final Map<String, Field> fieldsByName = new HashMap<>();
+    schema.fields().forEach(
+      field -> fieldsByName.put(field.name().toUpperCase(), field)
+    );
+    return fieldsByName;
   }
 
   public Struct toConnectRow(final GenericRow row) {
     final Struct struct = new Struct(schema);
-    for (int i = 0; i < schema.fields().size(); i++) {
-      struct.put(schema.fields().get(i).name(), row.getColumns().get(i));
-    }
+    schema.fields().forEach(
+        field -> struct.put(field, row.getColumns().get(field.index()))
+    );
     return struct;
   }
 }
