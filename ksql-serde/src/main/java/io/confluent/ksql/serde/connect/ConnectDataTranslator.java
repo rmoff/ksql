@@ -239,7 +239,7 @@ public class ConnectDataTranslator implements DataTranslator {
     // todo: check name here? e.g. what if the struct gets changed to a union?
     final Struct ksqlStruct = new Struct(schema);
     final Map<String, Field> caseInsensitiveFieldNameMap = getCaseInsensitiveFieldMap(connectSchema);
-    for (final Field field : schema.fields()) {
+    schema.fields().forEach(field -> {
       final String fieldNameUppercase = field.name().toUpperCase();
       // TODO: should we throw an exception if this is not true? this means the schema changed
       //       or the user declared the source with a schema incompatible with the registry schema
@@ -255,7 +255,7 @@ public class ConnectDataTranslator implements DataTranslator {
                 fieldValue,
                 pathStr + PATH_SEPARATOR + field.name()));
       }
-    }
+    });
     return ksqlStruct;
   }
 
