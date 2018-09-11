@@ -54,7 +54,7 @@ Download the Tutorial and Start KSQL
     .. code:: bash
 
         $ docker run --network tutorials_default --rm --name datagen-pageviews \
-            confluentinc/ksql-examples: \
+            confluentinc/ksql-examples:latest \
             ksql-datagen \
                 bootstrap-server=kafka:39092 \
                 quickstart=pageviews \
@@ -65,7 +65,7 @@ Download the Tutorial and Start KSQL
     .. code:: bash
 
         $ docker run --network tutorials_default --rm --name datagen-users \
-            confluentinc/ksql-examples: \
+            confluentinc/ksql-examples:latest \
             ksql-datagen \
                 bootstrap-server=kafka:39092 \
                 quickstart=users \
@@ -98,7 +98,7 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm  \
-        confluentinc/ksql-examples: \
+        confluentinc/ksql-examples:latest \
         ksql-datagen \
             quickstart=orders \
             format=avro \
@@ -190,7 +190,7 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm  --name datagen-orders-local \
-        confluentinc/ksql-examples: \
+        confluentinc/ksql-examples:latest \
         ksql-datagen \
             quickstart=orders \
             format=avro \
@@ -201,7 +201,7 @@ Download the Tutorial and Start KSQL
 .. code:: bash
 
     $ docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-        confluentinc/ksql-examples: \
+        confluentinc/ksql-examples:latest \
         ksql-datagen \
             quickstart=orders \
             format=avro \
