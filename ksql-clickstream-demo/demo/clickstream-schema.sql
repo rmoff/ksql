@@ -1,9 +1,3 @@
--- lets the windows accumulate more data
-set 'commit.interval.ms'='2000';
-set 'cache.max.bytes.buffering'='10000000';
-set 'auto.offset.reset'='earliest';
-
-
 -- 1. SOURCE of ClickStream
 DROP STREAM IF EXISTS clickstream;
 CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');
@@ -59,7 +53,7 @@ CREATE TABLE ENRICHED_ERROR_CODES_COUNT AS SELECT code, definition, COUNT(*) AS 
 
 -- users lookup table
 DROP TABLE IF EXISTS WEB_USERS;
-CREATE TABLE WEB_USERS (user_id int, registered_At long, username varchar, first_name varchar, last_name varchar, city varchar, level varchar) with (key='user_id', kafka_topic = 'clickstream_users', value_format = 'json');
+CREATE TABLE WEB_USERS (user_id int, registered_At BIGINT, username varchar, first_name varchar, last_name varchar, city varchar, level varchar) with (key='user_id', kafka_topic = 'clickstream_users', value_format = 'json');
 
 -- Clickstream enriched with user account data
 DROP STREAM IF EXISTS customer_clickstream;
