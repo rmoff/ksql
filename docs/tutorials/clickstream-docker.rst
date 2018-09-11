@@ -309,35 +309,33 @@ Send the KSQL tables to Elasticsearch and Grafana.
         ksql>
         Exiting KSQL.
 
-2. Navigate to the tutorial directory in the Docker container:
+2. Set up the required Elasticsearch document mapping template
 
    .. code:: bash
 
-       $ cd /usr/share/doc/ksql-clickstream-demo/
+       $ docker-compose exec elasticsearch bash -c '/scripts/elastic-dynamic-template.sh'
 
 3. Run this command to send the KSQL tables to Elasticsearch and
    Grafana:
 
    .. code:: bash
 
-       $ ./ksql-tables-to-grafana.sh
+       $ docker-compose exec kafka-connect bash -c '/scripts/ksql-tables-to-grafana.sh'
 
    Your output should resemble:
 
    .. code:: bash
 
-       Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
-       Logging to: /tmp/ksql-connect.log
-       Charting  CLICK_USER_SESSIONS
-       Charting  USER_IP_ACTIVITY
-       Charting  CLICKSTREAM_STATUS_CODES
-       Charting  ENRICHED_ERROR_CODES_COUNT
-       Charting  ERRORS_PER_MIN_ALERT
-       Charting  ERRORS_PER_MIN
-       Charting  EVENTS_PER_MIN_MAX_AVG
-       Charting  EVENTS_PER_MIN
-       Charting  PAGES_PER_MIN
-       Done
+        Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource
+        Logging to: /tmp/ksql-connect.log
+        Charting  CLICK_USER_SESSIONS
+        Charting  USER_IP_ACTIVITY
+        Charting  ENRICHED_ERROR_CODES_COUNT
+        Charting  ERRORS_PER_MIN_ALERT
+        Charting  ERRORS_PER_MIN
+        Charting  EVENTS_PER_MIN
+        Charting  PAGES_PER_MIN
+        Done
 
 4. Load the dashboard into Grafana.
 

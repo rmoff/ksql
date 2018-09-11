@@ -67,6 +67,8 @@ services:
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_PLUGIN_PATH: '/usr/share/java'
+    volumes:
+     - $PWD/demo:/scripts
 
   ksql-server:
     image: confluentinc/cp-ksql-server:5.0.0
@@ -129,7 +131,7 @@ services:
       xpack.security.enabled: "false"
       ES_JAVA_OPTS: "-Xms1g -Xmx1g"
     volumes:
-     - $PWD/scripts:/scripts
+     - $PWD/demo:/scripts
 
   grafana:
     image: grafana/grafana:5.2.4
