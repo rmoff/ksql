@@ -85,27 +85,28 @@ services:
       KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
       KSQL_KSQL_SERVICE_ID: confluent_rmoff_01
 
-  control-center:
-    image: confluentinc/cp-enterprise-control-center:5.0.0
-    depends_on:
-      - zookeeper
-      - kafka
-      - schema-registry
-      - kafka-connect
-      - ksql-server
-    ports:
-      - "9021:9021"
-    environment:
-      CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka:9092'
-      CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      CONTROL_CENTER_CONNECT_CLUSTER: 'kafka-connect:8083'
-      CONTROL_CENTER_KSQL_ENDPOINT: "http://ksql-server:8088"
-      CONTROL_CENTER_REPLICATION_FACTOR: 1
-      CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
-      CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
-      CONFLUENT_METRICS_TOPIC_REPLICATION: 1
-      CONTROL_CENTER_CUB_KAFKA_TIMEOUT: 300
-      PORT: 9021
+# Not used in current demo
+  # control-center:
+  #   image: confluentinc/cp-enterprise-control-center:5.0.0
+  #   depends_on:
+  #     - zookeeper
+  #     - kafka
+  #     - schema-registry
+  #     - kafka-connect
+  #     - ksql-server
+  #   ports:
+  #     - "9021:9021"
+  #   environment:
+  #     CONTROL_CENTER_BOOTSTRAP_SERVERS: 'kafka:29092'
+  #     CONTROL_CENTER_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+  #     CONTROL_CENTER_CONNECT_CLUSTER: 'kafka-connect:8083'
+  #     CONTROL_CENTER_KSQL_ENDPOINT: "http://ksql-server:8088"
+  #     CONTROL_CENTER_REPLICATION_FACTOR: 1
+  #     CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
+  #     CONTROL_CENTER_MONITORING_INTERCEPTOR_TOPIC_PARTITIONS: 1
+  #     CONFLUENT_METRICS_TOPIC_REPLICATION: 1
+  #     CONTROL_CENTER_CUB_KAFKA_TIMEOUT: 300
+  #     PORT: 9021
 
   # Runs the Kafka KSQL data generator for ratings
   datagen-ratings:
@@ -143,12 +144,15 @@ services:
     volumes:
      - $PWD/demo:/scripts
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:6.3.0
-    depends_on:
-      - elasticsearch
-    ports:
-      - 5601:5601
-    environment:
-      xpack.security.enabled: "false"
-      discovery.type: "single-node"
+# Kibana's useful for exploring the data, and/or dev tools for
+# Elasticsearch. It's not core to the demo though, so not enabled
+# by default. 
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana:6.3.0
+  #   depends_on:
+  #     - elasticsearch
+  #   ports:
+  #     - 5601:5601
+  #   environment:
+  #     xpack.security.enabled: "false"
+  #     discovery.type: "single-node"
