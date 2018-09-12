@@ -13,8 +13,6 @@ do
 
     echo "==================================================================" 
     echo "Charting " $TABLE_NAME  
-    echo "Charting " $TABLE_NAME
-
 
     ## Cleanup existing data
 
