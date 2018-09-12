@@ -29,11 +29,9 @@ curl -XPUT "http://localhost:9200/_template/kafkaconnect/" -H 'Content-Type: app
             "match": "*",
             "match_mapping_type": "string",
             "mapping": {
-              "type": "keyword",
-              "index": "not_analyzed"
+              "type": "keyword"
             }
-          }
-        }
+          }}
       ]
     }
   }
