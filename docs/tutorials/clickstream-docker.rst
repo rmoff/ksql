@@ -341,19 +341,19 @@ Send the KSQL tables to Elasticsearch and Grafana.
 
    .. code:: bash
 
-       $ ./clickstream-analysis-dashboard.sh
+       $ docker-compose exec grafana bash -c '/scripts/clickstream-analysis-dashboard.sh'
 
    Your output should resemble:
 
    .. code:: bash
 
-       Loading Grafana ClickStream Dashboard
-       {"id":1,"slug":"click-stream-analysis","status":"success","uid":"VhmK8Mkik","url":"/d/VhmK8Mkik/click-stream-analysis","version":1}
+        Loading Grafana ClickStream Dashboard
+        {"id":1,"slug":"click-stream-analysis","status":"success","uid":"lUHTGDTmz","url":"/d/lUHTGDTmz/click-stream-analysis","version":4}
 
-       Navigate to:
-          http://localhost:3000/d/VhmK8Mkik/click-stream-analysis (non-docker)
-       or
-          http://localhost:33000/d/VhmK8Mkik/click-stream-analysis (docker)
+
+        Navigate to:
+                http://localhost:3000/d/lUHTGDTmz/click-stream-analysis
+        (Default user: admin / password: admin)
 
 #.  Open your your browser using the second url output from the previous step's command.
     You can login with user ID ``admin`` and password ``admin``.
