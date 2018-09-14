@@ -3,6 +3,10 @@
 #        -H "Content-Type: application/json" \
 #	     --user admin:admin
 
+export HOST=localhost
+export PORT=3000
+export ENDPOINT=
+echo "Waiting for host to start listening on $HOST ⏳ ";while [ $(curl -s -o /dev/null -w "%{http_code}" http://$HOST:$PORT/$ENDPOINT) -eq 000 ];do curl -s -o /dev/null -w "%{http_code}" http://$HOST:$PORT/$ENDPOINT;date;sleep 5;done
 
 echo "Loading Grafana ClickStream Dashboard"
 

@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+export HOST=localhost
+export PORT=8083
+export ENDPOINT=connectors
+echo "Waiting for host to start listening on $HOST ⏳ ";while [ $(curl -s -o /dev/null -w "%{http_code}" http://$HOST:$PORT/$ENDPOINT) -eq 000 ];do curl -s -o /dev/null -w "%{http_code}" http://$HOST:$PORT/$ENDPOINT;date;sleep 5;done;nc -vz $HOST $PORT
+
+export HOST=elasticsearch
+export PORT=9200
+export ENDPOINT=
+echo "Waiting for host to start listening on $HOST ⏳ ";while [ $(curl -s -o /dev/null -w "%{http_code}" http://$HOST:$PORT/$ENDPOINT) -eq 000 ];do curl -s -o /dev/null -w "%{http_code}" http://$HOST:$PORT/$ENDPOINT;date;sleep 5;done;nc -vz $HOST $PORT
+
 echo "Loading Clickstream-Demo TABLES to Confluent-Connect => Elastic => Grafana datasource"
 
 declare -a tables=('click_user_sessions' 'user_ip_activity' 'enriched_error_codes_count' 'errors_per_min_alert' 'errors_per_min' 'events_per_min' 'pages_per_min');

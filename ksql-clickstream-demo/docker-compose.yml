@@ -2,6 +2,8 @@
 version: '2'
 services:
   zookeeper:
+    ports:
+      - 2181:2181
     image: confluentinc/cp-zookeeper:5.0.0
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -72,16 +74,21 @@ services:
       CLASSPATH: /usr/share/java/monitoring-interceptors/monitoring-interceptors-5.0.0.jar
       CONNECT_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
       CONNECT_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
-
     volumes:
      - $PWD/demo:/scripts
      - $PWD/demo/connect-config:/usr/share/java/null-smt
+    command: "bash -c '/etc/confluent/docker/run & \
+                       /scripts/ksql-tables-to-grafana.sh && \
+                       sleep infinity'"
 
   ksql-server:
     image: confluentinc/cp-ksql-server:5.0.0
+    ports:
+      - 8088:8088
     depends_on:
       - kafka
       - schema-registry
+      - datagen-clickstream
     environment:
       KSQL_CUB_KAFKA_TIMEOUT: 300
       KSQL_BOOTSTRAP_SERVERS: kafka:29092
@@ -90,7 +97,12 @@ services:
       KSQL_KSQL_SERVICE_ID: confluent_rmoff_01
       KSQL_PRODUCER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor"
       KSQL_CONSUMER_INTERCEPTOR_CLASSES: "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor"
-
+      KSQL_KSQL_QUERIES_FILE: /scripts/clickstream-schema.sql
+      KSQL_KSQL_COMMIT_INTERVAL_MS: 2000
+      KSQL_KSQL_CACHE_MAX_BYTES_BUFFERING: 10000000
+      KSQL_KSQL_AUTO_OFFSET_RESET: earliest
+    volumes:
+     - $PWD/demo:/scripts
 
   control-center:
     image: confluentinc/cp-enterprise-control-center:5.0.0
@@ -108,7 +120,7 @@ services:
       CONTROL_CENTER_CONNECT_CLUSTER: 'kafka-connect:8083'
       CONTROL_CENTER_KSQL_URL: "http://ksql-server:8088"
       CONTROL_CENTER_CONNECT_CLUSTER: "http://kafka-connect:8083"
-      CONTROL_CENTER_KSQL_ADVERTISED_URL: "http://ksql-server:8088"
+      CONTROL_CENTER_KSQL_ADVERTISED_URL: "http://localhost:8088"
       CONTROL_CENTER_SCHEMA_REGISTRY_URL: "https://schema-registry:8081"
       CONTROL_CENTER_REPLICATION_FACTOR: 1
       CONTROL_CENTER_INTERNAL_TOPICS_PARTITIONS: 1
@@ -117,24 +129,66 @@ services:
       CONTROL_CENTER_CUB_KAFKA_TIMEOUT: 300
       PORT: 9021
 
-  # Runs the Kafka KSQL data generator for ratings
-  datagen-ratings:
+  # Runs the Kafka KSQL data generator for ratings - continuous
+  datagen-clickstream:
     image: confluentinc/ksql-examples:5.0.0
     depends_on:
       - kafka
       - schema-registry
     command: "bash -c 'echo Waiting for Kafka to be ready... && \
                        cub kafka-ready -b kafka:29092 1 300 && \
-                       echo Waiting for Confluent Schema Registry to be ready... && \
-                       cub sr-ready schema-registry 8081 300 && \
-                       echo Waiting a few seconds for topic creation to finish... && \
-                       sleep 20 && \
                        ksql-datagen \
                           quickstart=clickstream \
                           format=json \
                           topic=clickstream \
                           maxInterval=100 \
                           bootstrap-server=kafka:29092'"
+
+  # Runs the Kafka KSQL data generator for codes - exits once done
+  datagen-codes:
+    image: confluentinc/ksql-examples:5.0.0
+    depends_on:
+      - kafka
+      - schema-registry
+    command: "bash -c 'echo Waiting for Kafka to be ready... && \
+                       cub kafka-ready -b kafka:29092 1 300 && \
+                       echo interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor > /datagen.properties && \
+                       ksql-datagen \
+                          bootstrap-server=kafka:29092 \
+                          quickstart=clickstream_codes \
+                          format=json \
+                          topic=clickstream_codes \
+                          maxInterval=20 \
+                          iterations=100 \
+                          propertiesFile=/datagen.properties'"
+    # needs monitoring interceptors JAR to be in the image, which I can't find. 
+    # command: "bash -c 'echo Waiting for Kafka to be ready... && \
+    #                    cub kafka-ready -b kafka:29092 1 300 && \
+    #                    echo interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor > /datagen.properties && \
+    #                    ksql-datagen \
+    #                       bootstrap-server=kafka:29092 \
+    #                       quickstart=clickstream_codes \
+    #                       format=json \
+    #                       topic=clickstream_codes \
+    #                       maxInterval=20 \
+    #                       iterations=100 \
+    #                       propertiesFile=/datagen.properties'"
+
+  # Runs the Kafka KSQL data generator for users - continuous
+  datagen-users:
+    image: confluentinc/ksql-examples:5.0.0
+    depends_on:
+      - kafka
+      - schema-registry
+    command: "bash -c 'echo Waiting for Kafka to be ready... && \
+                       cub kafka-ready -b kafka:29092 1 300 && \
+                       ksql-datagen \
+                          bootstrap-server=kafka:29092 \
+                          quickstart=clickstream_users \
+                          format=json \
+                          topic=clickstream_users \
+                          maxInterval=10 \
+                          iterations=1000'"
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
@@ -145,6 +199,9 @@ services:
       ES_JAVA_OPTS: "-Xms1g -Xmx1g"
     volumes:
      - $PWD/demo:/scripts
+    command: "bash -c '/usr/local/bin/docker-entrypoint.sh & \
+                       /scripts/elastic-dynamic-template.sh && \
+                       sleep infinity'"
 
   grafana:
     image: grafana/grafana:5.2.4
@@ -152,6 +209,9 @@ services:
       - 3000:3000
     volumes:
      - $PWD/demo:/scripts
+    entrypoint: "bash -c '/scripts/clickstream-analysis-dashboard.sh && \
+                       sleep infinity & \
+                       /run.sh'"
 
 # Kibana's useful for exploring the data, and/or dev tools for
 # Elasticsearch. It's not core to the demo though, so not enabled
@@ -165,3 +225,6 @@ services:
   #   environment:
   #     xpack.security.enabled: "false"
   #     discovery.type: "single-node"
+
+#docker-compose exec kafka-connect bash -c '
+

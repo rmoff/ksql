@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+export HOST=localhost
+export PORT=9200
+export ENDPOINT=
+echo "Waiting for host to start listening on $HOST ⏳ ";while [ $(curl -s -o /dev/null -w "%{http_code}" http://$HOST:$PORT/$ENDPOINT) -eq 000 ];do curl -s -o /dev/null -w "%{http_code}" http://$HOST:$PORT/$ENDPOINT;date;sleep 5;done;nc -vz $HOST $PORT
+
 echo -e "\n-> Removing kafkaconnect index (if it doesn't exist, this just throws 404)\n"
 
 curl -XDELETE "http://localhost:9200/_template/kafkaconnect/"
