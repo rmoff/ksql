@@ -23,12 +23,12 @@ Docker images with the required networking and dependencies. The images
 are quite large and depending on your network connection may take 
 10-15 minutes to download.
 
-#. Clone the Confluent KSQL repository.
+#. Clone the Confluent examples repository.
 
    .. code:: bash
 
-       git clone https://github.com/confluentinc/ksql.git
-       cd ksql
+       git clone https://github.com/confluentinc/examples.git
+       cd examples
 
 #. Switch to the correct |cp| release branch:
 
@@ -36,12 +36,12 @@ are quite large and depending on your network connection may take
    
        git checkout |release_post_branch|
 
-#. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
+#. Navigate to the correct directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.
 
    .. code:: bash
 
-       cd ksql-clickstream-demo
+       cd ksql-clickstream
        docker-compose up -d
 
 
