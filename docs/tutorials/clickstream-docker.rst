@@ -41,7 +41,7 @@ are quite large and depending on your network connection may take
 
    .. code:: bash
 
-       cd ksql-clickstream
+       cd clickstream
        docker-compose up -d
 
 
